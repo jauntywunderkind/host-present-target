@@ -45,10 +45,16 @@ export const hostPresent= AsyncLift( async function detect( res, rej, self, {
 		}
 		--self.retries
 	}
+	function ping( host){
+		return await Icmp.ping( host, self.timeout).diff
+	}
+
 	while( true){
 		try{
 			// try to get a ping
-			const ping= await Icmp.ping( self.host, self.timeout).then( ping=> ping.diff)
+			const
+				plural= typeof self.host!== "string"&& self.host.length,
+				pings= plural?  await Promise.race( self.host.map( ping)): ping( self.host)
 
 			if( self.absent){
 				// host not absent, try again
