@@ -91,8 +91,52 @@ export function hostAbsent({ opts}){
 }
 
 
-async function main(){
-	
+async function main( opts= {}){
+	let hosts= opts.hosts
+	HOST: if( !hosts){
+		let argParse= opts.argParse|| argv=> argv.slice( 2)
+		if( opts.argv){
+			hosts= argParse( opts.argv)
+			break HOST
+		}
+		let envKey= opts.envKey|| "HOST_PRESENT_TARGET_HOST"
+		if( opts.env&& opts.env[ envKey]){
+			hosts= opts.env[ envKey]
+			break HOST
+		}
+
+		let process_= opts.process
+		if( process_=== undefined){
+			process_= process
+		}else if( !process){
+			break HOST
+		}
+		if( !opts.argv&& process_.argv){
+			hosts= argParse( process_.argv)
+			break HOST
+		}
+		if( !opts.env&& process_.env){
+			hosts= process_.env[ envKey]
+		}
+	}
+	if( !hosts){
+		throw new Error("Required a target host")
+	}
+	if( typeof host=== "string"){
+		host= host.split( ":")
+	}
+
+	// wait for host
+	await hostPresent({ host})
+	// notify systemd
+	await systemdNotify({
+		ready: true
+	})
+
+	// wait for host to leave
+	await hostAbsent({ host})
+	// terminate
+	process.exit( 1)
 }
 if( typeof process!== "undefined"&& `file://${ process.argv[ 1]}}`=== import.meta.url){
 	main()
