@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 "use module"
-import { Icmp} from "@jauntywunderkind/icmp"
-import { systemdNotify} from "systemd-notify"
+import Delay from "delay"
+import Icmp from "@jauntywunderkind/icmp"
 import AsyncLift from "processification/async-lift.js"
+import systemdNotify from "systemd-notify"
 
 export function MaxRetriesError(){
 	Error.call( this, "Maximum retries")
@@ -46,7 +47,7 @@ export const hostPresent= AsyncLift( async function detect( res, rej, self, {
 		--self.retries
 	}
 	function ping( host){
-		return await Icmp.ping( host, self.timeout).diff
+		return Icmp.ping( host, self.timeout)
 	}
 
 	while( true){
@@ -54,7 +55,7 @@ export const hostPresent= AsyncLift( async function detect( res, rej, self, {
 			// try to get a ping
 			const
 				plural= typeof self.host!== "string"&& self.host.length,
-				pings= plural?  await Promise.race( self.host.map( ping)): ping( self.host)
+				pings= plural? await Promise.race( self.host.map( ping)): await ping( self.host)
 
 			if( self.absent){
 				// host not absent, try again
@@ -75,7 +76,7 @@ export const hostPresent= AsyncLift( async function detect( res, rej, self, {
 			// interval
 			const remainder= self.remainder
 			if( remainder){
-				await delay( remainder)
+				await Delay( remainder)
 			}
 		}
 	}
@@ -92,9 +93,10 @@ export function hostAbsent({ opts}){
 
 
 async function main( opts= {}){
+	const start= process.hrtime.bigint()
 	let hosts= opts.hosts
 	HOST: if( !hosts){
-		let argParse= opts.argParse|| argv=> argv.slice( 2)
+		let argParse= opts.argParse|| (argv=> argv.slice( 2))
 		if( opts.argv){
 			hosts= argParse( opts.argv)
 			break HOST
@@ -139,17 +141,19 @@ async function main( opts= {}){
 	}
 
 	// wait for host
-	await hostPresent({ host, timeout, interval})
+	const ping= await hostPresent({ host: hosts, timeout, interval})
+	console.log( JSON.stringify({ state: "present", host: ping.host|| ping.ip, ping: ping.diff, t: process.hrtime.bigint() - start}))
 	// notify systemd the host is here
 	await systemdNotify({
 		ready: true
 	})
 
 	// wait for host to leave
-	await hostAbsent({ host})
+	await hostAbsent({ host: hosts, timeout, interval})
+	console.log( JSON.stringify({ state: "absent", t: process.hrtime.bigint() - start}))
 	// terminate
 	process.exit( 1)
 }
-if( typeof process!== "undefined"&& `file://${ process.argv[ 1]}}`=== import.meta.url){
+if( typeof process!== "undefined"&& `file://${ process.argv[ 1]}`=== import.meta.url){
 	main()
 }
