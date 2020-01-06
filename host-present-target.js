@@ -126,9 +126,21 @@ async function main( opts= {}){
 		host= host.split( ":")
 	}
 
+	let
+		process_= opts.process|| process,
+		env= process_&& process_.env|| {},
+		timeout= env.HOST_PRESENT_TARGET_TIMEOUT,
+		interval= env.HOST_PRESENT_TARGET_INTERVAL
+	if( timeout){
+		timeout= Number.parseInt( timeout)
+	}
+	if( interval){
+		interval= Number.parseInt( interval)
+	}
+
 	// wait for host
-	await hostPresent({ host})
-	// notify systemd
+	await hostPresent({ host, timeout, interval})
+	// notify systemd the host is here
 	await systemdNotify({
 		ready: true
 	})
