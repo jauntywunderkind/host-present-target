@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 "use module"
 import Delay from "delay"
-import Icmp from "@jauntywunderkind/icmp"
+import Ping from "async-iter-ping/ping.js"
 import AsyncLift from "processification/async-lift.js"
 import systemdNotify from "systemd-notify"
 
@@ -11,6 +11,23 @@ export function MaxRetriesError(){
 }
 MaxRetriesError.prototype= Object.create( Error.prototype)
 MaxRetriesError.prototype.constructor= MaxRetriesError
+
+export const 
+	Pinging: Symbol.for( "host-present-target:state:pinging"),
+	Resolving: Symbol.for( "host-present-target:state:resolving"),
+	Restarting: Symbol.for ("host-present-target:state:restarting"),
+	State= {
+		Pinging,
+		Resolving,
+		Restarting
+	}
+
+
+export function HostPresent( opt){
+	Object.defineProperties( this, {
+		state: State.resolving
+	})
+}
 
 export const hostPresent= AsyncLift( async function detect( res, rej, self, {
 	host,
@@ -46,12 +63,17 @@ export const hostPresent= AsyncLift( async function detect( res, rej, self, {
 		}
 		--self.retries
 	}
-	function ping( host){
-		return Icmp.ping( host, self.timeout)
+
+	const pings= {}
+	async function ping( host){
+		if( !pings[ host]){
+			pings[ host]=== new Ping( host)
+		}
 	}
 
 	while( true){
 		try{
+			console.log("loop", typeof self.host, self.host.length, self.host)
 			// try to get a ping
 			const
 				plural= typeof self.host!== "string"&& self.host.length,
@@ -65,6 +87,7 @@ export const hostPresent= AsyncLift( async function detect( res, rej, self, {
 			// ping succeeded, success
 			return ping
 		}catch( ex){
+			console.log("ex", ex, self.remainder)
 			if( self.absent){
 				// host absent, success
 				return
