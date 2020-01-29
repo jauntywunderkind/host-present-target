@@ -8,18 +8,17 @@ import systemdNotify from "systemd-notify"
 
 export const stages= [
 	"initial",
+	// run two ipv4/ipv6 connect submachines until one has a connectable address
 	"opening",
+	// allow previous machines to aggregating addresses
+	// while round robin pinging pool of pingable addresses
+	// move inactive addresses into a lower prio background pool
 	"open",
+	// active pool goes empty,
+	// re-connect, but this time with a deadline
 	"half-closed",
+	// fail to re-connect in time
 	"closed"
-]
-
-export const connect= [
-	"initial",
-	"resolving",
-	"pinging",
-	"open",
-	"timeout"
 ]
 
 export function HostPresent( opt){
