@@ -2,26 +2,24 @@
 "use module"
 import Delay from "delay"
 import Ping from "async-iter-ping/ping.js"
+import Retry from "async-iter-retry/retry.js"
 import AsyncLift from "processification/async-lift.js"
 import systemdNotify from "systemd-notify"
 
-export function MaxRetriesError(){
-	Error.call( this, "Maximum retries")
-	return this
-}
-MaxRetriesError.prototype= Object.create( Error.prototype)
-MaxRetriesError.prototype.constructor= MaxRetriesError
+export const stages= [
+	"initial",
+	"opening",
+	"open",
+	"half-closed",
+	"closed"
+]
 
-export const 
-	Pinging: Symbol.for( "host-present-target:state:pinging"),
-	Resolving: Symbol.for( "host-present-target:state:resolving"),
-	Restarting: Symbol.for ("host-present-target:state:restarting"),
-	State= {
-		Pinging,
-		Resolving,
-		Restarting
-	}
-
+export const connect= [
+	"initial",
+	"resolving",
+	"pinging",
+	"open"
+]
 
 export function HostPresent( opt){
 	Object.defineProperties( this, {
