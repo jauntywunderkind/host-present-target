@@ -16,7 +16,9 @@ export const stages= [
 	// found active candidate
 	// but still resolvers running
 	// also, start timeout on resolves
-	"half-open",
+	"halfOpen",
+	// resolve times out, transition to either halfOpen or open
+	"removeResolve",
 	// all resolves have terminated & we have an active
 	// continue round robin pinging active & candidate pools
 	// moving addreses between
@@ -24,12 +26,36 @@ export const stages= [
 	// active pool goes empty
 	// continue pinging candidates
 	// but fall to reresolve after timeout
-	"half-closed",
+	"halfClosed",
 	// resolve, but with limited retry
 	"reresolve"
 	// fail to reresolve
 	"closed"
 ]
+
+export machine= {
+	initial: invoke( resolvers,
+		transition( "done", "resolve"),
+		transition( "error", "initial")),
+	resolve: invoke( awaitCandidate,
+		transition( "done", "candidates"),
+		transition( "error", "initial")),
+	candidates: invoke( startPing,
+		transition( "done", "halfOpen"),
+		transition( "error", "initial"),
+	halfOpen: invoke( awaitResolves,
+		transition( "timeout", "removeResolve")
+
+
+	resolve: invoker( startPing, "candidates", "closed"),
+	candidates: invoker( getPing, "half-open", "closed"),
+	halfOpen: invoker( awaitResolves, "open", "closed"),
+	removeResolve: invoke( removeResolve,
+		transition( "open", "open"),
+		transition( "done", "halfOpen")),
+	
+	
+}
 
 export function HostPresent( opt){
 	Object.defineProperties( this, {
