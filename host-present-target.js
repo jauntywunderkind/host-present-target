@@ -18,7 +18,8 @@ export const connect= [
 	"initial",
 	"resolving",
 	"pinging",
-	"open"
+	"open",
+	"timeout"
 ]
 
 export function HostPresent( opt){
