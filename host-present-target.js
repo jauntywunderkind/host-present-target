@@ -8,16 +8,26 @@ import systemdNotify from "systemd-notify"
 
 export const stages= [
 	"initial",
-	// run two ipv4/ipv6 connect submachines until one has a connectable address
-	"opening",
-	// allow previous machines to aggregating addresses
-	// while round robin pinging pool of pingable addresses
-	// move inactive addresses into a lower prio background pool
+	// run up-to two ipv4/ipv6 connect submachines until one has a connectable address
+	"resolve",
+	// an address becomes resolved
+	// start trying to ping candidate addresses
+	"candidates",
+	// found active candidate
+	// but still resolvers running
+	// also, start timeout on resolves
+	"half-open",
+	// all resolves have terminated & we have an active
+	// continue round robin pinging active & candidate pools
+	// moving addreses between
 	"open",
-	// active pool goes empty,
-	// re-connect, but this time with a deadline
+	// active pool goes empty
+	// continue pinging candidates
+	// but fall to reresolve after timeout
 	"half-closed",
-	// fail to re-connect in time
+	// resolve, but with limited retry
+	"reresolve"
+	// fail to reresolve
 	"closed"
 ]
 
